@@ -7,9 +7,8 @@ using System.IO;
 using OdeToFood.Services;
 using Microsoft.AspNetCore.Routing;
 using OdeToFood.Entities;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-//using Microsoft.Extensions.PlatformAbstractions;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace OdeToFood
 {
@@ -22,9 +21,8 @@ namespace OdeToFood
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())//have to set base path with current version@
-                .AddJsonFile("appsettings.json");
-                //.AddEnvironmentVariables();
-            //builder.AddJsonFile("appsettings.json");
+                .AddJsonFile("appsettings.json")
+                .AddEnvironmentVariables();
 
             Configuration = builder.Build();
         }
@@ -34,11 +32,10 @@ namespace OdeToFood
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-
-            //services.AddEntityFramework().AddEntityFrameworkSqlServer().AddDbContext<OdeToFoodDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("OdeToFoodDatabase")));
-            services.AddDbContext<OdeToFoodDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("OdeToFoodDatabase")));
-            //.AddSqlServer()
-            //.AddDbContext<OdeToFoodDbContext>(options => options.UseSqlServer(Configuration["database:connection"]));
+            services.AddEntityFrameworkSqlServer().AddDbContext<OdeToFoodDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("OdeToFoodDatabase")));
+            services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<OdeToFoodDbContext>()
+                .AddDefaultTokenProviders();
 
             services.AddSingleton(povider => Configuration);
             services.AddSingleton<IGreeter, Greeter>();
@@ -46,7 +43,7 @@ namespace OdeToFood
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IGreeter greeter)
+        public void Configure(IApplicationBuilder app, IGreeter greeter, IHostingEnvironment appEnvironment)
         {
             //app.UseIISPlatformHandler(); this is now integrated into the framework
 
@@ -57,7 +54,8 @@ namespace OdeToFood
             //app.UseDefaultFiles();
             //app.UseStaticFiles();
             app.UseFileServer(); //combines the 2 above
-
+            app.UseNodeModules(appEnvironment);
+            app.UseIdentity();
             app.UseMvc(ConfigureRoutes);
 
             //app.Run is like a "terminal" peice of middleware. no middleware written after this will run

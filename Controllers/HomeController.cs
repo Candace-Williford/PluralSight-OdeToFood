@@ -2,9 +2,11 @@
 using OdeToFood.ViewModels;
 using OdeToFood.Services;
 using OdeToFood.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace OdeToFood.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private IGreeter _greeter;
@@ -16,6 +18,7 @@ namespace OdeToFood.Controllers
             _greeter = greeter;
         }
 
+        [AllowAnonymous]
         public ViewResult Index()
         {
             var model = new HomePageViewModel();
@@ -23,6 +26,32 @@ namespace OdeToFood.Controllers
             model.CurrentGreeting = _greeter.GetGreeting();
 
             return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult Edit(int id)
+        {
+            var model = _restaurantData.Get(id);
+            if (model == null)
+                return RedirectToAction("Index");
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public IActionResult Edit(int id, RestaurantEditViewModel input)
+        {
+            var restaurant = _restaurantData.Get(id);
+            if(restaurant != null && ModelState.IsValid)
+            {
+                restaurant.Name = input.Name;
+                restaurant.Cuisine = input.Cuisine;
+                _restaurantData.Commit();
+
+                return RedirectToAction("Details", new { id = restaurant.Id });
+            }
+            else
+                return View(restaurant);
         }
 
         [HttpGet] //helps asp.net mvc differentiate which one should be called
@@ -41,6 +70,7 @@ namespace OdeToFood.Controllers
                 restaurant.Cuisine = model.Cuisine;
 
                 _restaurantData.Add(restaurant);
+                _restaurantData.Commit();
 
                 return RedirectToAction("Details", new { id = restaurant.Id });
             }
